@@ -1,0 +1,46 @@
+name: Release Skill
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Package skill
+        run: |
+          python -c "
+          import zipfile
+          from pathlib import Path
+
+          skill_path = Path('marmot')
+          output_file = 'marmot.skill'
+
+          with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+              for f in skill_path.rglob('*'):
+                  if f.is_file():
+                      arcname = f.relative_to(skill_path.parent)
+                      zipf.write(f, arcname)
+                      print(f'Added: {arcname}')
+
+          print(f'Packaged to: {output_file}')
+          "
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: marmot.skill
+          generate_release_notes: true
